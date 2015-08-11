@@ -2,10 +2,9 @@
 set -e
 
 SVN_BASE_DIR=/var/lib/svn
-SSL_BASE_DIR=/etc/apache2/ssl
-SVN_PASSWD_BASE_DIR=/etc/htpasswd
-SVN_PASSWD_FILENAME=svn.passwd
 IMPORT_EXPORT_PATH=/tmp/import_export
+
+SVN_HOSTNAME=${SVN_HOSTNAME:=svn.example.com}
 
 # ************************************************************
 # Options passed to the docker container to run scripts
@@ -16,21 +15,35 @@ IMPORT_EXPORT_PATH=/tmp/import_export
 
 case ${1} in
     svn)
-        SVN_HOSTNAME=${SVN_HOSTNAME:=svn.example.com}
-        # Configure the hostname
-        sed -ie 's|SVN_HOSTNAME|'${SVN_HOSTNAME}'|' \
-            /etc/apache2/sites-available/000-default-ssl.conf \
-            /etc/apache2/sites-available/000-default.conf \
-            /etc/apache2/sites-available/000-svn.conf \
-            /etc/apache2/sites-available/000-websvn.conf \
-            /etc/websvn/config.php
+        # Set the server name
+        if [[ ! -z "${SVN_HOSTNAME}" ]]; then
+            echo >&2 "Setting SVN Hostname: ${SVN_HOSTNAME}"
+            # change any value of SVN_HOSTNAME to the value
+            sed -i 's|SVN_HOSTNAME|'${SVN_HOSTNAME}'|' \
+                /etc/apache2/sites-available/000-default-ssl.conf \
+                /etc/apache2/sites-available/000-default.conf \
+                /etc/websvn/config.php
+            # update the ServerName line
+            sed -i 's|ServerName .*$|ServerName '${SVN_HOSTNAME}'|' \
+                /etc/apache2/sites-available/000-default-ssl.conf \
+                /etc/apache2/sites-available/000-default.conf
+#            sed -i 's|ServerName .*$|ServerName '${SVN_HOSTNAME}'|' \
+#                /etc/websvn/config.php
+        fi
+        echo >&2 "Adding SVN repositories:"
         # Create apache config entries for each available repository
         repo_conf_dir=/etc/apache2/sites-available/dav_svn
-        rm -rf ${repo_conf_dir}
+        [[ -e ${repo_conf_dir} ]] && \
+            rm -rf ${repo_conf_dir}
         mkdir ${repo_conf_dir}
-        for repo_path in ${SVN_BASE_DIR}/* ; do
-            [[ ! -f ${repo_path}/format ]] && continue
+        svn_repos="$(cd ${SVN_BASE_DIR};ls -1d *)"
+        for repo_path in ${svn_repos} ; do
+            if [[ ! -f ${repo_path}/format ]]; then
+                echo >&2 "  ==> <SKIPPED>    ${repo_path}"
+                continue
+            fi
             repo_name=$(basename ${repo_path})
+            echo >&2 "  ==> [${repo_name}]    ${repo_path}"
             cat << EOF > ${repo_conf_dir}/${repo_name}.conf
 <Location /${repo_name}>
     DAV svn
