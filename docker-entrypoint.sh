@@ -5,6 +5,7 @@ SVN_BASE_DIR=/var/lib/svn
 IMPORT_EXPORT_PATH=/tmp/import_export
 
 SVN_HOSTNAME=${SVN_HOSTNAME:=svn.example.com}
+SVN_LDAP_PASSWORD=${SVN_LDAP_PASSWORD:=novatech}
 
 # ************************************************************
 # Options passed to the docker container to run scripts
@@ -29,6 +30,10 @@ case ${1} in
                 /etc/apache2/sites-available/000-default.conf
 #            sed -i 's|ServerName .*$|ServerName '${SVN_HOSTNAME}'|' \
 #                /etc/websvn/config.php
+            # Update the LDAP proxyagent password
+            sed -i 's|AuthLDAPBindPassword.*$|AuthLDAPBindPassword '${SVN_LDAP_PASSWORD}'|' \
+                /etc/apache2/sites-available/000-websvn.conf \
+                /etc/apache2/mods-available/ldap.conf
         fi
         echo >&2 "Adding SVN repositories:"
         # Create apache config entries for each available repository
@@ -56,7 +61,7 @@ case ${1} in
     AuthLDAPSearchAsUser on
     AuthLDAPCompareAsUser on
     AuthLDAPBindDN cn=proxyagent,dc=novatech
-    AuthLDAPBindPassword novatech
+    AuthLDAPBindPassword ${SVN_LDAP_PASSWORD}
     AuthLDAPGroupAttribute memberUid
     AuthLDAPGroupAttributeIsDN off
     <RequireAll>
