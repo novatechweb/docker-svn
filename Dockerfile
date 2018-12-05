@@ -10,6 +10,7 @@ MAINTAINER Joseph Lutz <Joseph.Lutz@novatechweb.com>
 RUN apt-get update && \
   DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends \
     apache2 \
+    ca-certificates \
     enscript \
     libapache2-svn \
     php5-common \
