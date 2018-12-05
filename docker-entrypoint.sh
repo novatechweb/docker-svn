@@ -41,7 +41,7 @@ case ${1} in
         [[ -e ${repo_conf_dir} ]] && \
             rm -rf ${repo_conf_dir}
         mkdir ${repo_conf_dir}
-        svn_repos="$(cd ${SVN_BASE_DIR};ls -1d *)"
+        svn_repos="$(cd ${SVN_BASE_DIR};ls -1)"
         for repo_path in ${svn_repos} ; do
             if [[ ! -f ${repo_path}/format ]]; then
                 echo >&2 "  ==> <SKIPPED>    ${repo_path}"
