@@ -96,6 +96,27 @@ EOF
         done
         ;;
 
+    hotcopy)
+        # Archive SVN repositories with hotcopy
+        for repo_path in ${SVN_BASE_DIR}/*
+        do
+            [[ ! -f ${repo_path}/format ]] && continue
+            repo_name=$(basename ${repo_path})
+            /usr/bin/svnadmin hotcopy "${repo_path}" "${IMPORT_EXPORT_PATH}/${repo_name}"
+            /usr/bin/svnadmin verify "${IMPORT_EXPORT_PATH}/${repo_name}"
+        done
+        ;;
+    restore)
+        # Import hotcopy archived SVN repositories
+        for src_path in ${IMPORT_EXPORT_PATH}/* ; do
+            [[ ! -e ${src_path} ]] && continue
+            repo_name=$(basename ${src_path})
+            /usr/bin/svnadmin hotcopy "${src_path}" "${SVN_BASE_DIR}/${repo_name}"
+            /usr/bin/svnadmin verify "${SVN_BASE_DIR}/${repo_name}"
+        done
+        # change permissions on svn repositories
+        chown -R www-data:www-data ${SVN_BASE_DIR}
+        ;;
     import)
         # ignore first argument and get list of repositories to create
         shift
@@ -126,4 +147,3 @@ EOF
         exec "$@"
         ;;
 esac
-
