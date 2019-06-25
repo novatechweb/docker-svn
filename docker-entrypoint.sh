@@ -102,8 +102,8 @@ EOF
         do
             [[ ! -f ${repo_path}/format ]] && continue
             repo_name=$(basename ${repo_path})
-            /usr/bin/svnadmin hotcopy "${repo_path}" "${IMPORT_EXPORT_PATH}/${repo_name}"
-            /usr/bin/svnadmin verify "${IMPORT_EXPORT_PATH}/${repo_name}"
+            /usr/bin/svnadmin hotcopy --incremental --clean-logs "${repo_path}" "${IMPORT_EXPORT_PATH}/${repo_name}"
+            /usr/bin/svnadmin verify --quiet "${IMPORT_EXPORT_PATH}/${repo_name}"
         done
         ;;
     restore)
@@ -111,8 +111,8 @@ EOF
         for src_path in ${IMPORT_EXPORT_PATH}/* ; do
             [[ ! -e ${src_path} ]] && continue
             repo_name=$(basename ${src_path})
-            /usr/bin/svnadmin hotcopy "${src_path}" "${SVN_BASE_DIR}/${repo_name}"
-            /usr/bin/svnadmin verify "${SVN_BASE_DIR}/${repo_name}"
+            /usr/bin/svnadmin hotcopy --incremental --clean-logs "${src_path}" "${SVN_BASE_DIR}/${repo_name}"
+            /usr/bin/svnadmin verify --quiet "${SVN_BASE_DIR}/${repo_name}"
         done
         # change permissions on svn repositories
         chown -R www-data:www-data ${SVN_BASE_DIR}
