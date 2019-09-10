@@ -41,7 +41,7 @@ case ${1} in
         [[ -e ${repo_conf_dir} ]] && \
             rm -rf ${repo_conf_dir}
         mkdir ${repo_conf_dir}
-        svn_repos="$(cd ${SVN_BASE_DIR};ls -1d *)"
+        svn_repos="$(cd ${SVN_BASE_DIR};ls -1)"
         for repo_path in ${svn_repos} ; do
             if [[ ! -f ${repo_path}/format ]]; then
                 echo >&2 "  ==> <SKIPPED>    ${repo_path}"
@@ -67,7 +67,6 @@ case ${1} in
     <RequireAll>
         Require valid-user
         Require ssl
-        Require ip 172.16.0.0/16 192.168.0.0/16
         <RequireAny>
             Require ldap-group cn=%{SERVER_NAME},ou=group,dc=novatech
             Require ldap-group cn=${repo_name},cn=%{SERVER_NAME},ou=group,dc=novatech
@@ -96,6 +95,27 @@ EOF
         done
         ;;
 
+    hotcopy)
+        # Archive SVN repositories with hotcopy
+        for repo_path in ${SVN_BASE_DIR}/*
+        do
+            [[ ! -f ${repo_path}/format ]] && continue
+            repo_name=$(basename ${repo_path})
+            /usr/bin/svnadmin hotcopy --incremental --clean-logs "${repo_path}" "${IMPORT_EXPORT_PATH}/${repo_name}"
+            /usr/bin/svnadmin verify --quiet "${IMPORT_EXPORT_PATH}/${repo_name}"
+        done
+        ;;
+    restore)
+        # Import hotcopy archived SVN repositories
+        for src_path in ${IMPORT_EXPORT_PATH}/* ; do
+            [[ ! -e ${src_path} ]] && continue
+            repo_name=$(basename ${src_path})
+            /usr/bin/svnadmin hotcopy --incremental --clean-logs "${src_path}" "${SVN_BASE_DIR}/${repo_name}"
+            /usr/bin/svnadmin verify --quiet "${SVN_BASE_DIR}/${repo_name}"
+        done
+        # change permissions on svn repositories
+        chown -R www-data:www-data ${SVN_BASE_DIR}
+        ;;
     import)
         # ignore first argument and get list of repositories to create
         shift
@@ -126,4 +146,3 @@ EOF
         exec "$@"
         ;;
 esac
-
